@@ -7,6 +7,10 @@
  *   either in invocation of the system() call, or if a non-zero return
  *   value was returned by the command issued in @param cmd.
 */
+
+int global_process_monitor_error = 0;
+int global_process_monitor_error1 = 0;
+
 bool do_system(const char *cmd)
 {
 
@@ -16,8 +20,12 @@ bool do_system(const char *cmd)
  *   and return a boolean true if the system() call completed with success
  *   or false() if it returned a failure
 */
+    int sysval = system(cmd);
 
-    return true;
+    if(sysval == 0)
+        return true;
+    else
+        return false;
 }
 
 /**
@@ -45,9 +53,10 @@ bool do_exec(int count, ...)
         command[i] = va_arg(args, char *);
     }
     command[count] = NULL;
+
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
+    // command[count] = command[count];
 
 /*
  * TODO:
@@ -58,8 +67,48 @@ bool do_exec(int count, ...)
  *   as second argument to the execv() command.
  *
 */
+    int status;
+    pid_t pid = fork();
+
+    if (pid == 0) {
+      printf("I am the child.");
+      execv(command[0], command);
+      printf("In exec(): ");
+      global_process_monitor_error += 1;
+      va_end(args);
+      _exit(11);
+      return false;
+    }
 
     va_end(args);
+
+    if (pid > 0) {
+      printf("I am the parent, and the child is %d.\n", pid);
+      pid = wait(&status);
+      printf("End of process %d: ", pid);
+
+      if(global_process_monitor_error > 0)
+        {
+            global_process_monitor_error -= 1;
+            return false;
+        }
+
+      if (WIFEXITED(status)) {
+        printf("The process ended with exit(%d).\n", WEXITSTATUS(status));
+        if(status != 0)
+            return false;
+      }
+
+      if (WIFSIGNALED(status)) {
+        printf("The process ended with kill -%d.\n", WTERMSIG(status));
+        return false;
+      }
+    }
+
+    if (pid < 0) {
+      perror("In fork():");
+      return false;
+    }
 
     return true;
 }
@@ -82,7 +131,7 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
     command[count] = NULL;
     // this line is to avoid a compile warning before your implementation is complete
     // and may be removed
-    command[count] = command[count];
+    // command[count] = command[count];
 
 
 /*
@@ -92,8 +141,52 @@ bool do_exec_redirect(const char *outputfile, int count, ...)
  *   The rest of the behaviour is same as do_exec()
  *
 */
+    int status = 0;
+    bool errorflag = false;
+    int fd = open(outputfile, O_WRONLY|O_TRUNC|O_CREAT, 0644);
+    if (fd < 0) { printf("open error\n"); errorflag = true; }
+    pid_t pid = fork();
+    
+    switch (pid) {
+      case -1: 
+        printf("fork error\n"); 
+        close(fd);
+        errorflag = true;
+      case 0:      
+        printf("I am the child."); 
+        if (dup2(fd, 1) < 0) { printf("dup2 error"); errorflag = true; }
+        close(fd);
+        execv(command[0], command); 
+        printf("execv error\n"); 
+        global_process_monitor_error1 = 1; 
+        errorflag = true;
+      default:
+        close(fd);
+        printf("I am the parent, and the child is %d.\n", pid);
+        pid = wait(&status);
+        printf("End of process %d: ", pid);
+        if(global_process_monitor_error1 != 0)
+        {
+            global_process_monitor_error1 = 0;
+            errorflag = true;
+        }
+
+        if (WIFEXITED(status)) {
+            printf("The process ended with exit(%d).\n", WEXITSTATUS(status));
+            if(status != 0)
+                errorflag = true;
+        }
+
+        if (WIFSIGNALED(status)) {
+            printf("The process ended with kill -%d.\n", WTERMSIG(status));
+            errorflag = true;
+        }
+    }
+    
 
     va_end(args);
+
+    if(errorflag) return false;
 
     return true;
 }
