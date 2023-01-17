@@ -1,5 +1,5 @@
 #CC указывает компилятор, используемый для сборки
-CC=$(CROSS-COMPILER)gcc
+CC=$(CROSS_COMPILE)gcc
 #в переменной CFLAGS лежат флаги, которые передаются компилятору
 CFLAGS=-g -Wall -c
 

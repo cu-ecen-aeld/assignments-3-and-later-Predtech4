@@ -1,0 +1,3 @@
+WHILE BUILDING KERNEL:
+ERROR: multiple definition of 'yylloc'
+IN linux-stable/scripts/dtc/dtc-lexer.l FIND YYLTYPE yylloc; CHANGE FOR extern YYLTYPE yylloc;
