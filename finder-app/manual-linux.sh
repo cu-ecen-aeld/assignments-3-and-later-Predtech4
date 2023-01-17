@@ -82,10 +82,10 @@ sudo make distclean
 sudo make defconfig
 
 # CROSS_COMPILE can't be found when using sudo. Have to write absolute path.
-make ARCH=$ARCH LDFLAGS="--static" CROSS_COMPILE=$CROSS_COMPILE install CONFIG_PREFIX="${OUTDIR}/rootfs"
+sudo make ARCH=$ARCH LDFLAGS="--static" CROSS_COMPILE=$CROSS_COMPILE install CONFIG_PREFIX="${OUTDIR}/rootfs"
 
-echo "Library dependencies"
 cd "${OUTDIR}/rootfs"
+echo "Library dependencies"
 #${CROSS_COMPILE}readelf -a bin/busybox | grep NEEDED
 
 # TODO: Add library dependencies to rootfs
@@ -116,11 +116,6 @@ cp -a $FINDER_APP_DIR/autorun-qemu.sh home
 
 mkdir home/conf
 cp -a $FINDER_APP_DIR/conf/username.txt home/conf 
-
-touch init
-
-echo "#!/bin/sh\necho \"im in init\"\nmount -t devtmpfs  devtmpfs  /dev\nmount -t proc      proc      /proc\nmount -t sysfs     sysfs     /sys\nmount -t tmpfs     tmpfs     /tmp\nexec /bin/sh" > init
-chmod +x init
 
 # TODO: Chown the root directory
 sudo chown -R root:root ${OUTDIR}/rootfs
